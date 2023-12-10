@@ -53,6 +53,15 @@ contract FundMeTest is Test {
 
     }
 
+    function testOnlyOwnerCanWithdraw() public{
+        vm.prank(USER);
+        fundMe.fund{value:1 ether}();
+
+        vm.expectRevert();
+        vm.prank(USER);
+        fundMe.withdraw();
+    }
+
     function testOwnerIsMsgSender() public {
         assertEq(msg.sender, fundMe.i_owner());
     }
