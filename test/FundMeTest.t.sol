@@ -12,6 +12,12 @@ contract FundMeTest is Test {
     HelperConfig public helperConfig;
     address  USER = makeAddr("user");
 
+    modifier contractIsFunded(){
+        vm.prank(USER);
+        fundMe.fund{value: 10 ether}();
+        _;
+    }
+
     function setUp() external {
         DeployFundMe deployFundMe = new DeployFundMe();
          (fundMe, helperConfig) = deployFundMe.run();
@@ -53,16 +59,30 @@ contract FundMeTest is Test {
 
     }
 
-    function testOnlyOwnerCanWithdraw() public{
-        vm.prank(USER);
-        fundMe.fund{value:1 ether}();
-
+    function testWithdrawDeniedIfNotOwner() public contractIsFunded{
         vm.expectRevert();
         vm.prank(USER);
         fundMe.withdraw();
     }
 
+    function testWithdrawAnyFunder() public contractIsFunded{
+        //Arrange
+        uint startingOwnerBalance = fundMe.getOwner().balance;
+        uint startingFundMeContractBalance = address(fundMe).balance;
+
+        //Act
+        vm.prank(fundMe.getOwner());
+        fundMe.withdraw();
+
+        //Assert
+        uint endingOwnerBalance = fundMe.getOwner().balance;
+        uint endingFundMeContractBalance = address(fundMe).balance;
+
+        assertEq(endingFundMeContractBalance, 0);
+        assertEq(startingFundMeContractBalance+startingOwnerBalance, endingOwnerBalance);
+    }
+
     function testOwnerIsMsgSender() public {
-        assertEq(msg.sender, fundMe.i_owner());
+        assertEq(msg.sender, fundMe.getOwner());
     }
 }
